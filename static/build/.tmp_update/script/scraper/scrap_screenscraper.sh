@@ -461,7 +461,7 @@ echo -e "\n--------------------------"
 echo "Total scanned roms   : $romcount"
 echo "--------------------------"
 echo "Successfully scraped : $Scrap_Success"
-echo "Alread present       : $Scrap_notrequired"
+echo "Already present      : $Scrap_notrequired"
 echo "Failed or not found  : $Scrap_Fail"
 echo -e "--------------------------\n"	 
 sleep 2
