@@ -33,11 +33,10 @@ Scrap_notrequired=0
 CurrentSystem=$1
 CurrentRom="$2"
 
-
 Screenscraper_information () {
-clear 
+    clear 
 
-cat << 	EOF
+    cat << 	EOF
 
 ===================================
       = Screenscraper.fr =
@@ -65,10 +64,10 @@ moderator/Admin     : 200.000 requests per day
 
 EOF
 
-read -n 1 -s -r -p "Press A to continue"
-clear 
+    read -n 1 -s -r -p "Press A to continue"
+    clear 
 
-cat << 	EOF
+    cat << 	EOF
 
 ===================================
       = Screenscraper.fr =
@@ -94,11 +93,9 @@ https://www.screenscraper.fr/faq.php
 
 EOF
 
-read -n 1 -s -r -p "Press A to continue"
-clear
+    read -n 1 -s -r -p "Press A to continue"
+    clear
 }
-
-
 
 # Function to search on screenscraper with retry logic
 search_on_screenscraper() {
@@ -160,25 +157,25 @@ search_on_screenscraper() {
 
 get_ssSystemID() {
     # Get directory name from function argument
-    DIRECTORY_NAME="$1"
+    directory_name="$1"
 
     # Define the path to the JSON file
-    JSON_FILE="/mnt/SDCARD/.tmp_update/config/systems.json"
+    json_file="/mnt/SDCARD/.tmp_update/config/systems.json"
 
     # Use jq to find the ScreenScraperSystem based on the DirectoryName
-    SCREEN_SCRAPER_SYSTEM=$(jq --arg dir "$DIRECTORY_NAME" '
+    screen_scraper_system=$(jq --arg dir "$directory_name" '
         .[] | select(.DirectoryName == $dir) | .ScreenScraperSystem
-    ' $JSON_FILE)
+    ' $json_file)
 
     # Check if a ScreenScraperSystem was found
-    if [ -z "$SCREEN_SCRAPER_SYSTEM" ]; then
-        echo "No system found for the directory: $DIRECTORY_NAME"
+    if [ -z "$screen_scraper_system" ]; then
+        echo "No system found for the directory: $directory_name"
         exit
     else
-        echo "ScreenScraperSystem ID for $DIRECTORY_NAME is: $SCREEN_SCRAPER_SYSTEM"
+        echo "ScreenScraperSystem ID for $directory_name is: $screen_scraper_system"
     fi
 
-    ssSystemID=$SCREEN_SCRAPER_SYSTEM
+    ssSystemID=$screen_scraper_system
 }
 
 saveMetadata=false
@@ -187,15 +184,11 @@ echo -e "\n*****************************************************"
 echo -e "******************* SCREENSCRAPER *******************"
 echo -e "*****************************************************\n\n"
 
-
-
 #We check for existing credentials
-
 ScraperConfigFile=/mnt/SDCARD/.tmp_update/config/scraper.json
-if [ -f "$ScraperConfigFile" ]; then
 
+if [ -f "$ScraperConfigFile" ]; then
     config=$(cat $ScraperConfigFile)
-	
 	MediaType=$(echo "$config" | jq -r '.ScreenscraperMediaType')
 	SelectedRegion=$(echo "$config" | jq -r '.ScreenscraperRegion')
 	echo "Scraping $CurrentSystem..."
@@ -222,8 +215,6 @@ EOF
         echo -e "screenscraper password: xxxx (hidden)\n\n"
     fi
 fi
-
-
 
 # TODO : improve or remove this part (now in options)
 if [ "$userStored" = "false" ] && ! [ "$ScrapeInBackground" = "true" ]; then
@@ -257,7 +248,6 @@ if [ "$userStored" = "false" ] && ! [ "$ScrapeInBackground" = "true" ]; then
 			sync
 			clear
 			break
-
         elif [ "$Mychoice" = "Screenscraper information" ]; then
 			clear
 			Screenscraper_information
@@ -265,11 +255,8 @@ if [ "$userStored" = "false" ] && ! [ "$ScrapeInBackground" = "true" ]; then
 			clear
 			break
         fi
-
     done
 fi
-
-
 		
 clear
 echo -e "\n*****************************************************"
@@ -301,9 +288,7 @@ IFS='
 set -f
 # =================
 
-
 #Roms loop
-
 
 #if ! [ -z "$CurrentRom" ]; then
 #    romfilter="-name  '*$CurrentRom*'"
@@ -316,7 +301,6 @@ if ! [ -z "$CurrentRom" ]; then
     #romfilter="-name  '*$CurrentRom*'"
     romfilter="-name \"*$CurrentRom*\""
 fi
-    
 
 for file in $(eval "find /mnt/SDCARD/Roms/$CurrentSystem -maxdepth 2 -type f \
 	! -name '.*' ! -name '*.xml' ! -name '*.miyoocmd' ! -name '*.cfg' ! -name '*.db' \
@@ -341,15 +325,12 @@ for file in $(eval "find /mnt/SDCARD/Roms/$CurrentSystem -maxdepth 2 -type f \
     romNameTrimmed="${romNameTrimmed//" - "/"%20"}"
     romNameTrimmed="${romNameTrimmed/"-"/"%20"}"
     romNameTrimmed="${romNameTrimmed//" "/"%20"}"
-
     
     #echo $romNameTrimmed # for debugging
-
 
 	if [ -f "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png" ]; then
 		echo -e "${YELLOW}already Scraped !${NONE}"
 		let Scrap_notrequired++;
-	
 	else
 		rom_size=$(stat -c%s "$file")
 		url="https://www.screenscraper.fr/api2/jeuInfos.php?devid=${u#???}&devpassword=${p%??}&softname=onion&output=json&ssid=${userSS}&sspassword=${passSS}&crc=&systemeid=${ssSystemID}&romtype=rom&romnom=${romNameTrimmed}.zip&romtaille=${rom_size}"
@@ -363,8 +344,7 @@ for file in $(eval "find /mnt/SDCARD/Roms/$CurrentSystem -maxdepth 2 -type f \
 			if [ "$rom_size" -gt "$MAX_FILE_SIZE_BYTES" ]; then
 				echo -e "${RED}Rom is too big to make a checksum.${NONE}"
 				let Scrap_Fail++;
-				continue;
-				
+				continue;				
 			else
 				echo -n "CRC check..."
 				CRC=$(xcrc "$file")
@@ -372,6 +352,7 @@ for file in $(eval "find /mnt/SDCARD/Roms/$CurrentSystem -maxdepth 2 -type f \
 				# !!! systemid must not be specified, it impacts the search by CRC but not romtaille (must be > 2 however) or romnom. Most of other parameters than CRC are useless for the request but helps to fill SS database
 				url="https://www.screenscraper.fr/api2/jeuInfos.php?devid=${u#???}&devpassword=${p%??}&softname=onion&output=json&ssid=${userSS}&sspassword=${passSS}&crc=${CRC}&systemeid=&romtype=rom&romnom=${romNameTrimmed}.zip&romtaille=${rom_size}"  
 				search_on_screenscraper
+
 				if ! [ "$gameIDSS" -eq "$gameIDSS" ] 2> /dev/null; then	
 					echo -e "${RED}Failed to get game ID${NONE}"
 					let Scrap_Fail++;
@@ -381,16 +362,11 @@ for file in $(eval "find /mnt/SDCARD/Roms/$CurrentSystem -maxdepth 2 -type f \
 				RealgameName=$(echo "$api_result" | jq -r '.response.jeu.noms[0].text')
 				echo Real name found : "$RealgameName"
 			fi
-
         fi
 		
         echo "gameID = $gameIDSS"
-
-
         
 		api_result=$(echo $api_result | jq '.response.jeu.medias')   # we keep only media section for faster search : 0.01s instead of 0.25s after that
-
-
 
 # for debugging :
 # echo -e "Region1: $Region1\nRegion2: $Region2\nRegion3: $Region3\nRegion4: $Region4\nRegion5: $Region5\nRegion6: $Region6\nRegion7: $Region7\nRegion8: $Region8\n$MediaType"
@@ -401,29 +377,27 @@ for file in $(eval "find /mnt/SDCARD/Roms/$CurrentSystem -maxdepth 2 -type f \
 	# MediaURL=$(echo "$api_result" | jq --arg MediaType "$MediaType" --arg Region "$region" '.response.jeu.medias[] | select(.type == $MediaType) | select(.region == $region) | .url' | head -n 1)
 	# MediaURL=$(echo "$api_result" | jq --arg MediaType "$MediaType" --arg Region "$region" '.[] | select(.type == $MediaType) | select(.region == $region) | .url' | head -n 1)
 
-
-			# this jq query will search all the images of type "MediaType" and will display it by order defined in RegionOrder
-			MediaURL=$(echo "$api_result" | jq --arg MediaType "$MediaType" \
-									--arg Region1 "$Region1" \
-									--arg Region2 "$Region2" \
-									--arg Region3 "$Region3" \
-									--arg Region4 "$Region4" \
-									--arg Region5 "$Region5" \
-									--arg Region6 "$Region6" \
-									--arg Region7 "$Region7" \
-									--arg Region8 "$Region8" \
-									'map(select(.type == $MediaType)) |
-									  sort_by(if .region == $Region1 then 0
-											elif .region == $Region2 then 1
-											elif .region == $Region3 then 2
-											elif .region == $Region4 then 3
-											elif .region == $Region5 then 4
-											elif .region == $Region6 then 5
-											elif .region == $Region7 then 6
-											elif .region == $Region8 then 7
-											else 8 end) |
-									.[0].url' | head -n 1)
-
+        # this jq query will search all the images of type "MediaType" and will display it by order defined in RegionOrder
+        MediaURL=$(echo "$api_result" | jq --arg MediaType "$MediaType" \
+                                --arg Region1 "$Region1" \
+                                --arg Region2 "$Region2" \
+                                --arg Region3 "$Region3" \
+                                --arg Region4 "$Region4" \
+                                --arg Region5 "$Region5" \
+                                --arg Region6 "$Region6" \
+                                --arg Region7 "$Region7" \
+                                --arg Region8 "$Region8" \
+                                'map(select(.type == $MediaType)) |
+                                    sort_by(if .region == $Region1 then 0
+                                        elif .region == $Region2 then 1
+                                        elif .region == $Region3 then 2
+                                        elif .region == $Region4 then 3
+                                        elif .region == $Region5 then 4
+                                        elif .region == $Region6 then 5
+                                        elif .region == $Region7 then 6
+                                        elif .region == $Region8 then 7
+                                        else 8 end) |
+                                .[0].url' | head -n 1)
 
         if [ -z "$MediaURL" ]; then 
             echo -e "${YELLOW}Game matches but no media found!${NONE}"
@@ -450,14 +424,12 @@ for file in $(eval "find /mnt/SDCARD/Roms/$CurrentSystem -maxdepth 2 -type f \
 			echo -e "${RED}Download failed.${NONE}"
 			let Scrap_Fail++;
 		fi
-        
-        
-        #pngscale "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png" "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png"
-		
-    fi
-   
 
-		#####################################################################################################################################
+        #pngscale "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png" "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png"
+
+    fi
+
+	#####################################################################################################################################
     #   saveMetadata=false
     
     #   if [ $saveMetadata == true ]; then
@@ -481,14 +453,9 @@ for file in $(eval "find /mnt/SDCARD/Roms/$CurrentSystem -maxdepth 2 -type f \
     #       fi
     #   fi
 		#####################################################################################################################################
-				
 #TODO : get manual	
 				
-
-
 done
-
-
 
 echo -e "\n--------------------------"
 echo "Total scanned roms   : $romcount"
