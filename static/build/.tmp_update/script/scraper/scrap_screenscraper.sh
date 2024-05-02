@@ -173,6 +173,7 @@ get_ssSystemID() {
     # Check if a ScreenScraperSystem was found
     if [ -z "$SCREEN_SCRAPER_SYSTEM" ]; then
         echo "No system found for the directory: $DIRECTORY_NAME"
+        exit
     else
         echo "ScreenScraperSystem ID for $DIRECTORY_NAME is: $SCREEN_SCRAPER_SYSTEM"
     fi

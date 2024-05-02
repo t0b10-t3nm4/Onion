@@ -96,102 +96,26 @@ CurrentSystem=$1
 CurrentRom="$2"
 
 get_launchbox_alias() {
-  # find the corresponding platform for launchbox scraping
-  case $1 in
-    ADVMAME)              platform="Arcade";;
-    AMIGA)                platform="Commodore Amiga";;
-    AMIGACD)              platform="Commodore Amiga CD32";;
-    ARCADE)               platform="Arcade";;
-    # ARDUBOY)            platform="";;
-    ATARI)                platform="Atari 2600";;
-    ATARIST)              platform="Atari ST";;
-    # CHAI)               platform="";;
-    COLECO)               platform="ColecoVision";;
-    COMMODORE)            platform="Commodore 64";;
-    CPC)                  platform="Amstrad CPC";;
-    CPS1)                 platform="Arcade";;
-    CPS2)                 platform="Arcade";;
-    CPS3)                 platform="Arcade";;
-    DAPHNE)               platform="Arcade";;
-    DOS)                  platform="MS-DOS";;
-    # EASYRPG)            platform="";;
-    # EBK)                platform="";;
-    EIGHTHUNDRED)         platform="Atari 800";;
-    FAIRCHILD)            platform="Fairchild Channel F";;
-    FBA2012)              platform="Arcade";;
-    FBALPHA)              platform="Arcade";;
-    FBNEO)                platform="Arcade";;
-    FC)                   platform="Nintendo Entertainment System";;
-    FDS)                  platform="Nintendo Famicom Disk System";;
-    FIFTYTWOHUNDRED)      platform="Atari 5200";;
-    GB)                   platform="Nintendo Game Boy";;
-    GBA)                  platform="Nintendo Game Boy Advance";;
-    GBC)                  platform="Nintendo Game Boy Color";;
-    GG)                   platform="Sega Game Gear";;
-    # GME)                platform="";;
-    GW)                   platform="Nintendo Game & Watch";;
-    INTELLIVISION)        platform="Mattel Intellivision";;
-    JAGUAR)               platform="Atari Jaguar";;
-    # JAVA)               platform="";;
-    # LUTRO)              platform="";;
-    LYNX)                 platform="Atari Lynx";;
-    MAME2000)             platform="Arcade";;
-    MAME2003)             platform="Arcade";;
-    MBA)                  platform="Arcade";;
-    MD)                   platform="Sega Genesis";;
-    MDHACKS)              platform="Sega Genesis";;
-    MEGADUCK)             platform="Mega Duck";;
-    # MICROW8)            platform="";;
-    MS)                   platform="Sega Master System";;
-    MSX)                  platform="Microsoft MSX";;
-    NDS)                  platform="Nintendo DS";;
-    NEOCD)                platform="SNK Neo Geo CD";;
-    NEOGEO)               platform="SNK Neo Geo AES";;
-    NGP)                  platform="SNK Neo Geo Pocket";;
-    ODYSSEY)              platform="Magnavox Odyssey";;
-    OPENBOR)              platform="OpenBOR";;
-    # PALM)               platform="";;
-    PANASONIC)            platform="3DO Interactive Multiplayer";;
-    PCE)                  platform="NEC TurboGrafx-16";;
-    PCECD)                platform="NEC TurboGrafx-CD";;
-    PCEIGHTYEIGHT)        platform="NEC PC-8801";;
-    PCFX)                 platform="NEC PC-FX";;
-    PCNINETYEIGHT)        platform="NEC PC-9801";;
-    # PICO)               platform="";;
-    POKE)                 platform="Nintendo Pokemon Mini";;
-    # PORTS)              platform="";;
-    PS)                   platform="Sony Playstation";;
-    SATELLAVIEW)          platform="Nintendo Satellaview";;
-    SCUMMVM)              platform="ScummVM";;
-    SEGACD)               platform="Sega CD";;
-    SEGASGONE)            platform="Sega Model 1";;
-    SEVENTYEIGHTHUNDRED)  platform="Atari 7800";;
-    SFC)                  platform="Super Nintendo Entertainment System";;
-    SGB)                  platform="Nintendo Game Boy Color";;
-    SGFX)                 platform="PC Engine SuperGrafx";;
-    # SUFAMI)             platform="";;
-    SUPERVISION)          platform="Watara Supervision";;
-    THIRTYTWOX)           platform="Sega 32X";;
-    # THOMSON)            platform="";;
-    # TI83)               platform="";;
-    # TIC)                platform="";;
-    # UZEBOX)             platform="";;
-    VB)                   platform="Nintendo Virtual Boy";;
-    VECTREX)              platform="GCE Vectrex";;
-    VIC20)                platform="Commodore VIC-20";;
-    VIDEOPAC)             platform="Philips Videopac+";;
-    # VMU)                platform="dreamcast";;
-    WS)                   platform="WonderSwan";;
-    X68000)               platform="Sharp X68000";;
-    XONE)                 platform="Sharp X1";;
-    ZXEIGHTYONE)          platform="Sinclair ZX-81";;
-    ZXS)                  platform="Sinclair ZX Spectrum";;
-    zxspectrum)           platform="Sinclair ZX Spectrum";;
-    *)
-      echo "unknown system, exiting."
-      exit
-      ;;
-  esac
+    # Get directory name from function argument
+    DIRECTORY_NAME="$1"
+
+    # Define the path to the JSON file
+    JSON_FILE="/mnt/SDCARD/.tmp_update/config/systems.json"
+
+    # Use jq to find the ScreenScraperSystem based on the DirectoryName
+    LAUNCHBOX_PLATFORM=$(jq --arg dir "$DIRECTORY_NAME" '
+        .[] | select(.DirectoryName == $dir) | .LaunchBoxPlatform
+    ' $JSON_FILE)
+
+    # Check if a ScreenScraperSystem was found
+    if [ -z "$LAUNCHBOX_PLATFORM" ]; then
+        echo "No system found for the directory: $DIRECTORY_NAME"
+        exit
+    else
+        echo "LaunchBox Platform for $DIRECTORY_NAME is: $LAUNCHBOX_PLATFORM"
+    fi
+
+    platform=$LAUNCHBOX_PLATFORM
 }
 
 

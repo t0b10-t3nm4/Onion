@@ -35,6 +35,30 @@ CurrentRom="$2"
 
 
 get_ra_alias(){
+
+	# Get directory name from function argument
+    DIRECTORY_NAME="$1"
+
+    # Define the path to the JSON file
+    JSON_FILE="/mnt/SDCARD/.tmp_update/config/systems.json"
+
+    # Use jq to find the RetroArchSystem based on the DirectoryName
+    REMOTE_SYSTEM=$(jq --arg dir "$DIRECTORY_NAME" '
+        .[] | select(.DirectoryName == $dir) | .RetroArchSystem
+    ' $JSON_FILE)
+
+    # Check if a ScreenScraperSystem was found
+    if [ -z "$REMOTE_SYSTEM" ]; then
+        echo "No system found for the directory: $DIRECTORY_NAME"
+		exit
+    else
+        echo "RetroArchSystem for $DIRECTORY_NAME is: $REMOTE_SYSTEM"
+    fi
+
+    remoteSystem=$REMOTE_SYSTEM
+}
+
+
 	# find the corresponding remoteSystem for Retroarch scraping
 case $1 in
 	ATARI)               remoteSystem="Atari - 2600" ;;
