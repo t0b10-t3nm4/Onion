@@ -58,65 +58,6 @@ get_ra_alias(){
     remoteSystem=$REMOTE_SYSTEM
 }
 
-
-	# find the corresponding remoteSystem for Retroarch scraping
-case $1 in
-	ATARI)               remoteSystem="Atari - 2600" ;;
-	FIFTYTWOHUNDRED)     remoteSystem="Atari - 5200" ;;
-	SEVENTYEIGHTHUNDRED) remoteSystem="Atari - 7800" ;;
-	LYNX)                remoteSystem="Atari - Lynx" ;;
-	# doom)              remoteSystem="DOOM" ;;
-	DOS)                 remoteSystem="DOS" ;;
-	FBNEO)               remoteSystem="FBNeo - Arcade Games" ;;
-	PCE)                 remoteSystem="NEC - PC Engine - TurboGrafx 16" ;;
-	PCECD)               remoteSystem="NEC - PC Engine CD - TurboGrafx-CD" ;;
-	GB)                  remoteSystem="Nintendo - Game Boy" ;;
-	GBA)                 remoteSystem="Nintendo - Game Boy Advance" ;;
-	# gbc)               remoteSystem="Nintendo - Game Boy Color" ;;
-	GBC)                 remoteSystem="Nintendo - Game Boy Color" ;;
-	# 3ds)               remoteSystem="Nintendo - Nintendo 3DS" ;;
-	# n64)               remoteSystem="Nintendo - Nintendo 64" ;;
-	NDS)                 remoteSystem="Nintendo - Nintendo DS" ;;
-	FC)                  remoteSystem="Nintendo - Nintendo Entertainment System" ;;
-	POKE)                remoteSystem="Nintendo - Pokemon Mini" ;;
-	SFC)                 remoteSystem="Nintendo - Super Nintendo Entertainment System" ;;
-	# wii)               remoteSystem="Nintendo - Wii" ;;
-	NEOGEO)              remoteSystem="SNK - Neo Geo" ;;
-	NEOCD)               remoteSystem="SNK - Neo Geo CD" ;;
-	NGP)                 remoteSystem="SNK - Neo Geo Pocket" ;;
-	NGP)                 remoteSystem="SNK - Neo Geo Pocket Color" ;;
-	SCUMMVM)             remoteSystem="ScummVM" ;;
-	THIRTYTWOX)          remoteSystem="Sega - 32X" ;;
-	VMU)                 remoteSystem="Sega - Dreamcast" ;;
-	GG)                  remoteSystem="Sega - Game Gear" ;;
-	MS)                  remoteSystem="Sega - Master System - Mark III" ;;
-	MD)                  remoteSystem="Sega - Mega Drive - Genesis" ;;
-	# genesiswide)       remoteSystem="Sega - Mega Drive - Genesis" ;;
-	SEGACD)              remoteSystem="Sega - Mega-CD - Sega CD" ;;
-	# saturn)            remoteSystem="Sega - Saturn" ;;
-	PS)                  remoteSystem="Sony - PlayStation" ;;
-	# ps2)               remoteSystem="Sony - PlayStation 2" ;;
-	# psp)               remoteSystem="Sony - PlayStation Portable" ;;
-	PANASONIC)           remoteSystem="The 3DO Company - 3DO" ;;
-	CPC)                 remoteSystem="Amstrad - CPC" ;;
-	ATARIST)             remoteSystem="Atari - ST" ;;
-	COLECO)              remoteSystem="Coleco - ColecoVision" ;;
-	INTELLIVISION)       remoteSystem="Mattel - Intellivision" ;;
-	LUTRO)               remoteSystem="Lutro" ;;
-	MSX)                 remoteSystem="Microsoft - MSX" ;;
-	TIC)                 remoteSystem="TIC-80" ;;
-	VECTREX)             remoteSystem="GCE - Vectrex" ;;
-	ZXS)                 remoteSystem="Sinclair - ZX Spectrum" ;;
-	*)
-		echo "unknown system, exiting."
-		exit
-		;;
-esac
-
-}
-
-
-
 #Retroarch system folder name
 get_ra_alias $CurrentSystem
  #ls /mnt/SDCARD/Roms/$CurrentSystem
