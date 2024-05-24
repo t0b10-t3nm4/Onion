@@ -32,6 +32,7 @@ Scrap_notrequired=0
 
 CurrentSystem=$1
 CurrentRom="$2"
+allowed_threads=1
 
 Screenscraper_information () {
     clear 
@@ -102,8 +103,7 @@ search_on_screenscraper() {
     local retry_count=0
     local max_retries=5
 
-    while true; do
-		# TODO : managing multithread for users who have it.
+    while true; do		
         api_result=$(curl -k -s "$url")
 		Head_api_result=$(echo "$api_result" | head -n 1)
         
@@ -122,7 +122,8 @@ search_on_screenscraper() {
                 sleep "$sleep_duration"
             fi
         else
-            break  # we have a result, we exit 
+            # we have a result, we exit 
+            break
         fi
     done
 
@@ -175,6 +176,160 @@ get_ssSystemID() {
 
     ssSystemID=$screen_scraper_system
 }
+
+# TODO: Retrive the number of allowed threads from screenscraper.fr
+get_allowed_threads() {
+    # simulate the service call        
+    sleep 1
+    
+    # we have a result, we set allowed_threads
+}
+
+scrape_game() {
+    file="$1"
+    gameIDSS=""
+	url=""
+    let romcount++;
+    
+    # Cleaning up names
+    romName=$(basename "$file")
+    romNameNoExtension=${romName%.*}
+	echo "$romNameNoExtension"
+    
+    eval /mnt/SDCARD/.tmp_update/script/scraper/trim_rom_name.sh screenscraper "$romNameNoExtension"
+    
+    #echo $romNameTrimmed # for debugging
+    echo "-------------------------------------------------"
+
+	if [ -f "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png" ]; then
+		echo -e "$romNameNoExtension: ${YELLOW}Already Scraped!${NONE}"
+		let Scrap_notrequired++;
+	else
+		rom_size=$(stat -c%s "$file")
+		url="https://www.screenscraper.fr/api2/jeuInfos.php?devid=${u#???}&devpassword=${p%??}&softname=onion&output=json&ssid=${userSS}&sspassword=${passSS}&crc=&systemeid=${ssSystemID}&romtype=rom&romnom=${romNameTrimmed}.zip&romtaille=${rom_size}"
+    	search_on_screenscraper
+    	
+    	# Don't check art if we didn't get screenscraper game ID
+        if ! [ "$gameIDSS" -eq "$gameIDSS" ] 2> /dev/null; then
+			# Last chance : we search thanks to rom checksum
+			MAX_FILE_SIZE_BYTES=52428800  #50MB
+			
+			if [ "$rom_size" -gt "$MAX_FILE_SIZE_BYTES" ]; then
+				echo -e "$romNameNoExtension: ${RED}Rom is too big to make a checksum.${NONE}"
+				let Scrap_Fail++;
+				continue;				
+			else
+				echo -n "$romNameNoExtension: CRC check..."
+				CRC=$(xcrc "$file")
+				echo " $CRC"
+				# !!! systemid must not be specified, it impacts the search by CRC but not romtaille (must be > 2 however) or romnom. Most of other parameters than CRC are useless for the request but helps to fill SS database
+				url="https://www.screenscraper.fr/api2/jeuInfos.php?devid=${u#???}&devpassword=${p%??}&softname=onion&output=json&ssid=${userSS}&sspassword=${passSS}&crc=${CRC}&systemeid=&romtype=rom&romnom=${romNameTrimmed}.zip&romtaille=${rom_size}"  
+				search_on_screenscraper
+
+				if ! [ "$gameIDSS" -eq "$gameIDSS" ] 2> /dev/null; then	
+					echo -e "$romNameNoExtension: ${RED}Failed to get game ID${NONE}"
+					let Scrap_Fail++;
+					continue;
+				fi
+				
+				RealgameName=$(echo "$api_result" | jq -r '.response.jeu.noms[0].text')
+				echo "$romNameNoExtension: Real name found : $RealgameName"
+			fi
+        fi
+		
+        echo "gameID = $gameIDSS"
+        
+		api_result=$(echo $api_result | jq '.response.jeu.medias')   # we keep only media section for faster search : 0.01s instead of 0.25s after that
+
+        # for debugging :
+        # echo -e "Region1: $Region1\nRegion2: $Region2\nRegion3: $Region3\nRegion4: $Region4\nRegion5: $Region5\nRegion6: $Region6\nRegion7: $Region7\nRegion8: $Region8\n$MediaType"
+        # MediaType="box-2D"
+        # region1="eu"
+        # echo "$api_result" | jq --arg MediaType "$MediaType"  --arg Region1 "$region1"  --arg Region2 "$region2" 'map(select(.type == $MediaType)) | sort_by(if .region == $Region1 then 0 elif .region == $Region2 then 1 else 8 end)'
+        # Old way:
+        # MediaURL=$(echo "$api_result" | jq --arg MediaType "$MediaType" --arg Region "$region" '.response.jeu.medias[] | select(.type == $MediaType) | select(.region == $region) | .url' | head -n 1)
+        # MediaURL=$(echo "$api_result" | jq --arg MediaType "$MediaType" --arg Region "$region" '.[] | select(.type == $MediaType) | select(.region == $region) | .url' | head -n 1)
+
+
+
+        # this jq query will search all the images of type "MediaType" and will display it by order defined in RegionOrder
+        MediaURL=$(echo "$api_result" | jq --arg MediaType "$MediaType" \
+                                --arg Region1 "$Region1" \
+                                --arg Region2 "$Region2" \
+                                --arg Region3 "$Region3" \
+                                --arg Region4 "$Region4" \
+                                --arg Region5 "$Region5" \
+                                --arg Region6 "$Region6" \
+                                --arg Region7 "$Region7" \
+                                --arg Region8 "$Region8" \
+                                'map(select(.type == $MediaType)) |
+                                    sort_by(if .region == $Region1 then 0
+                                        elif .region == $Region2 then 1
+                                        elif .region == $Region3 then 2
+                                        elif .region == $Region4 then 3
+                                        elif .region == $Region5 then 4
+                                        elif .region == $Region6 then 5
+                                        elif .region == $Region7 then 6
+                                        elif .region == $Region8 then 7
+                                        else 8 end) |
+                                .[0].url' | head -n 1)
+
+        if [ -z "$MediaURL" ]; then 
+            echo -e "${YELLOW}Game matches but no media found!${NONE}"
+            let Scrap_Fail++
+            continue
+        fi
+        
+        # echo -e "Downloading Images for $romNameNoExtension \nScreenscraper ID : $gameIDSS \n url :$MediaURL\n\n"        # for debugging
+
+        MediaURL=$(echo "$MediaURL" | sed 's/"$/\&maxwidth=250\&maxheight=360"/')
+        urlcmd=$(echo "wget -q --no-check-certificate "$MediaURL" -P \"/mnt/SDCARD/Roms/$CurrentSystem/Imgs\" -O \"$romNameNoExtension.png\"")
+        
+        # directl download trigger an error
+        #wget --no-check-certificate "$MediaURL" -P "/mnt/SDCARD/Roms/$CurrentSystem/Imgs" -O "$romNameNoExtension.png"
+        #wget $urlcmd
+
+        echo $urlcmd>/tmp/rundl.sh
+        sh /tmp/rundl.sh
+
+		if [ -f "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png" ]; then
+			echo -e "$romNameNoExtension: ${GREEN}Scraped!${NONE}"
+			let Scrap_Success++;
+		else
+			echo -e "$romNameNoExtension: ${RED}Download failed.${NONE}"
+			let Scrap_Fail++;
+		fi
+
+        #pngscale "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png" "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png"
+
+        #####################################################################################################################################
+        #   saveMetadata=false
+        #   if [ $saveMetadata == true ]; then
+        #       mkdir -p /mnt/SDCARD/Roms/$CurrentSystem/info > /dev/null
+        #   
+        #       if [ -f "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt" ]; then
+        #           echo -e "${YELLOW}Metadata already Scraped !${NONE}"
+        #       else
+        #           genre_array=$( echo $api_result | jq -r '[foreach .response.jeu.genres[].noms[] as $item ([[],[]]; if $item.langue == "en" then $item.text else "" end)]'  )
+        #           echo "" >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
+        #           echo game: $romNameNoExtension >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
+        #           echo file: $romName >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
+        #           echo developer: $( echo $api_result | jq -r  '.response.jeu.developpeur.text' ) >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
+        #           echo publisher: $( echo $api_result | jq -r  '.response.jeu.editeur.text'  ) >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
+        #           echo genre: $( echo $genre_array | jq '. - [""] | join(", ")' ) | sed 's/[\"]//g' >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
+        #           echo description: $( echo $api_result | jq -r  '.response.jeu.synopsis[0].text'  ) >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
+        #           echo release: $( echo $api_result | jq -r  '.response.jeu.dates[0].text'  ) >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
+        #           echo players: $( echo $api_result | jq -r  '.response.jeu.joueurs.text'  ) >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
+        #           echo rating: $( echo $api_result | jq -r  '.response.jeu.classifications[0].text'  ) >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
+        #           echo -e "Metadata saved to :\n/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
+        #       fi
+        #   fi
+        #####################################################################################################################################
+        
+        #TODO : get manual	
+
+    fi
+}	
 
 saveMetadata=false
 clear
@@ -301,8 +456,8 @@ if ! [ -z "$CurrentRom" ]; then
 fi
 
 # Call the ScreenScraper web service to get the number of allowed threads
-# allowed_threads=$(curl -s "http://example.com/get_allowed_threads")
-allowed_threads=6
+# TODO: Get the number of allowed threads from screenscraper.fr in the get_allowed_threads function and remove hard coded value. 
+allowed_threads=4
 
 for file in $(eval "find /mnt/SDCARD/Roms/$CurrentSystem -maxdepth 2 -type f \
 	! -name '.*' ! -name '*.xml' ! -name '*.miyoocmd' ! -name '*.cfg' ! -name '*.db' \
@@ -316,152 +471,6 @@ for file in $(eval "find /mnt/SDCARD/Roms/$CurrentSystem -maxdepth 2 -type f \
 done
 
 wait
-
-scrape_game() {    
-    echo "-------------------------------------------------"
-    file="$1"
-    gameIDSS=""
-	url=""
-    let romcount++;
-    
-    # Cleaning up names
-    romName=$(basename "$file")
-    romNameNoExtension=${romName%.*}
-	echo "$romNameNoExtension"
-    
-    eval /mnt/SDCARD/.tmp_update/script/scraper/trim_rom_name.sh screenscraper "$romNameNoExtension"
-    
-    #echo $romNameTrimmed # for debugging
-
-	if [ -f "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png" ]; then
-		echo -e "${YELLOW}already Scraped !${NONE}"
-		let Scrap_notrequired++;
-	else
-		rom_size=$(stat -c%s "$file")
-		url="https://www.screenscraper.fr/api2/jeuInfos.php?devid=${u#???}&devpassword=${p%??}&softname=onion&output=json&ssid=${userSS}&sspassword=${passSS}&crc=&systemeid=${ssSystemID}&romtype=rom&romnom=${romNameTrimmed}.zip&romtaille=${rom_size}"
-    	search_on_screenscraper
-    	
-    	# Don't check art if we didn't get screenscraper game ID
-        if ! [ "$gameIDSS" -eq "$gameIDSS" ] 2> /dev/null; then
-			# Last chance : we search thanks to rom checksum
-			MAX_FILE_SIZE_BYTES=52428800  #50MB
-			
-			if [ "$rom_size" -gt "$MAX_FILE_SIZE_BYTES" ]; then
-				echo -e "${RED}Rom is too big to make a checksum.${NONE}"
-				let Scrap_Fail++;
-				continue;				
-			else
-				echo -n "CRC check..."
-				CRC=$(xcrc "$file")
-				echo " $CRC"
-				# !!! systemid must not be specified, it impacts the search by CRC but not romtaille (must be > 2 however) or romnom. Most of other parameters than CRC are useless for the request but helps to fill SS database
-				url="https://www.screenscraper.fr/api2/jeuInfos.php?devid=${u#???}&devpassword=${p%??}&softname=onion&output=json&ssid=${userSS}&sspassword=${passSS}&crc=${CRC}&systemeid=&romtype=rom&romnom=${romNameTrimmed}.zip&romtaille=${rom_size}"  
-				search_on_screenscraper
-
-				if ! [ "$gameIDSS" -eq "$gameIDSS" ] 2> /dev/null; then	
-					echo -e "${RED}Failed to get game ID${NONE}"
-					let Scrap_Fail++;
-					continue;
-				fi
-				
-				RealgameName=$(echo "$api_result" | jq -r '.response.jeu.noms[0].text')
-				echo Real name found : "$RealgameName"
-			fi
-        fi
-		
-        echo "gameID = $gameIDSS"
-        
-		api_result=$(echo $api_result | jq '.response.jeu.medias')   # we keep only media section for faster search : 0.01s instead of 0.25s after that
-
-        # for debugging :
-        # echo -e "Region1: $Region1\nRegion2: $Region2\nRegion3: $Region3\nRegion4: $Region4\nRegion5: $Region5\nRegion6: $Region6\nRegion7: $Region7\nRegion8: $Region8\n$MediaType"
-        # MediaType="box-2D"
-        # region1="eu"
-        # echo "$api_result" | jq --arg MediaType "$MediaType"  --arg Region1 "$region1"  --arg Region2 "$region2" 'map(select(.type == $MediaType)) | sort_by(if .region == $Region1 then 0 elif .region == $Region2 then 1 else 8 end)'
-        # Old way:
-        # MediaURL=$(echo "$api_result" | jq --arg MediaType "$MediaType" --arg Region "$region" '.response.jeu.medias[] | select(.type == $MediaType) | select(.region == $region) | .url' | head -n 1)
-        # MediaURL=$(echo "$api_result" | jq --arg MediaType "$MediaType" --arg Region "$region" '.[] | select(.type == $MediaType) | select(.region == $region) | .url' | head -n 1)
-
-
-
-        # this jq query will search all the images of type "MediaType" and will display it by order defined in RegionOrder
-        MediaURL=$(echo "$api_result" | jq --arg MediaType "$MediaType" \
-                                --arg Region1 "$Region1" \
-                                --arg Region2 "$Region2" \
-                                --arg Region3 "$Region3" \
-                                --arg Region4 "$Region4" \
-                                --arg Region5 "$Region5" \
-                                --arg Region6 "$Region6" \
-                                --arg Region7 "$Region7" \
-                                --arg Region8 "$Region8" \
-                                'map(select(.type == $MediaType)) |
-                                    sort_by(if .region == $Region1 then 0
-                                        elif .region == $Region2 then 1
-                                        elif .region == $Region3 then 2
-                                        elif .region == $Region4 then 3
-                                        elif .region == $Region5 then 4
-                                        elif .region == $Region6 then 5
-                                        elif .region == $Region7 then 6
-                                        elif .region == $Region8 then 7
-                                        else 8 end) |
-                                .[0].url' | head -n 1)
-
-        if [ -z "$MediaURL" ]; then 
-            echo -e "${YELLOW}Game matches but no media found!${NONE}"
-            let Scrap_Fail++
-            continue
-        fi
-        
-        # echo -e "Downloading Images for $romNameNoExtension \nScreenscraper ID : $gameIDSS \n url :$MediaURL\n\n"        # for debugging
-
-        MediaURL=$(echo "$MediaURL" | sed 's/"$/\&maxwidth=250\&maxheight=360"/')
-        urlcmd=$(echo "wget -q --no-check-certificate "$MediaURL" -P \"/mnt/SDCARD/Roms/$CurrentSystem/Imgs\" -O \"$romNameNoExtension.png\"")
-        
-        # directl download trigger an error
-        #wget --no-check-certificate "$MediaURL" -P "/mnt/SDCARD/Roms/$CurrentSystem/Imgs" -O "$romNameNoExtension.png"
-        #wget $urlcmd
-
-        echo $urlcmd>/tmp/rundl.sh
-        sh /tmp/rundl.sh
-
-		if [ -f "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png" ]; then
-			echo -e "${GREEN}Scraped!${NONE}"
-			let Scrap_Success++;
-		else
-			echo -e "${RED}Download failed.${NONE}"
-			let Scrap_Fail++;
-		fi
-
-        #pngscale "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png" "/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png"
-
-        #####################################################################################################################################
-        #   saveMetadata=false
-        #   if [ $saveMetadata == true ]; then
-        #       mkdir -p /mnt/SDCARD/Roms/$CurrentSystem/info > /dev/null
-        #   
-        #       if [ -f "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt" ]; then
-        #           echo -e "${YELLOW}Metadata already Scraped !${NONE}"
-        #       else
-        #           genre_array=$( echo $api_result | jq -r '[foreach .response.jeu.genres[].noms[] as $item ([[],[]]; if $item.langue == "en" then $item.text else "" end)]'  )
-        #           echo "" >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
-        #           echo game: $romNameNoExtension >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
-        #           echo file: $romName >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
-        #           echo developer: $( echo $api_result | jq -r  '.response.jeu.developpeur.text' ) >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
-        #           echo publisher: $( echo $api_result | jq -r  '.response.jeu.editeur.text'  ) >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
-        #           echo genre: $( echo $genre_array | jq '. - [""] | join(", ")' ) | sed 's/[\"]//g' >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
-        #           echo description: $( echo $api_result | jq -r  '.response.jeu.synopsis[0].text'  ) >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
-        #           echo release: $( echo $api_result | jq -r  '.response.jeu.dates[0].text'  ) >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
-        #           echo players: $( echo $api_result | jq -r  '.response.jeu.joueurs.text'  ) >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
-        #           echo rating: $( echo $api_result | jq -r  '.response.jeu.classifications[0].text'  ) >> "/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
-        #           echo -e "Metadata saved to :\n/mnt/SDCARD/Roms/$CurrentSystem/info/$romNameNoExtension.txt"
-        #       fi
-        #   fi
-        #####################################################################################################################################
-        
-        #TODO : get manual	
-
-    fi
-}	
 
 # Execute scraping completed logic
 echo -e "\n--------------------------"
