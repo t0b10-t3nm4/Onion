@@ -5,13 +5,11 @@ sysdir=/mnt/SDCARD/.tmp_update
 PATH="$sysdir/bin:$PATH"
 LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/mnt/SDCARD/.tmp_update/lib:$sysdir/lib/parasyte"
 
-
 romname=$(basename "$1")
 CurrentSystem=$(echo "$1" | grep -o '/Roms/[^/]*' | cut -d'/' -f3)
 romNameNoExtension=${romname%.*}
 romimage="/mnt/SDCARD/Roms/$CurrentSystem/Imgs/$romNameNoExtension.png"
 ScraperConfigFile=/mnt/SDCARD/.tmp_update/config/scraper.json
-
 
 # # for debugging
 # echo "CurrentSystem : $CurrentSystem"
@@ -20,10 +18,6 @@ ScraperConfigFile=/mnt/SDCARD/.tmp_update/config/scraper.json
 # echo "romNameNoExtension : $romNameNoExtension"
 # echo "romimage : $romimage"
 # read -n 1 -s -r -p "Press A to continue"
-
-
-
-##########################################################################################
 
 Menu_Config()
 {
@@ -46,12 +40,8 @@ Menu_Config()
 	sync
 }
 
-
-##########################################################################################
-
 Screenscraper_accountState()
 {
-
 	clear
 	if [ "$userSS" = "null" ] || [ "$passSS" = "null" ] || [ "$userSS" = "" ] || [ "$passSS" = "" ]; then
 		echo -e "Login or Password is empty!\nCheck user IDs!\n\n\n\n\n\n\n\n"
@@ -63,7 +53,6 @@ Screenscraper_accountState()
 	# Appel de l'API avec curl et stockage de la réponse JSON dans une variable
 	url="https://www.screenscraper.fr/api2/ssuserInfos.php?devid=xxx&devpassword=yyy&softname=zzz&output=json&ssid=$userSS&sspassword=$passSS"
 	api_result=$(curl -k -s "$url")
-
 
 	if echo "$api_result" | grep -q "^Erreur"; then
 		echo -e "Authentification failed.\nCheck user IDs!\n\n\n\n\n\n\n\n"
@@ -100,12 +89,7 @@ Screenscraper_accountState()
 	echo -e " Last scrape: $lastScrape\n\n\n\n\n\n\n\n\n\n\n\n"
 
 	read -n 1 -s -r -p "Press A to continue"
-
 }
-
-
-##########################################################################################
-
 
 Menu_Config_SSAccountSettings()
 {
@@ -124,16 +108,13 @@ Menu_Config_SSAccountSettings()
     
         userSS=$(echo "$config" | jq -r '.screenscraper_username')
         passSS=$(echo "$config" | jq -r '.screenscraper_password')
-    
-    
+
         if [ "$userSS" = "null" ] || [ "$passSS" = "null" ] || [ "$userSS" = "" ] || [ "$passSS" = "" ]; then
             userStored=false
         else
             userStored=true
         fi
     fi
-    
-    
 
         while true; do
 			echo "username: $userSS"
@@ -186,19 +167,12 @@ Menu_Config_SSAccountSettings()
 					false
 					;;
 			esac
-
         done
-
     clear
 }
 
-
-##########################################################################################
-
 Menu_Config_BackgroundScraping()
 {
-    
-
     # Check if the configuration file exists
     if [ ! -f "$ScraperConfigFile" ]; then
       echo "Error: configuration file not found"
@@ -215,30 +189,25 @@ Menu_Config_BackgroundScraping()
     
     config=$(cat "$ScraperConfigFile")
     ScrapeInBackground=$(echo "$config" | jq -r '.ScrapeInBackground')
-    
-    
-    	Mychoice=$( echo -e "No\nYes\nBack to Configuration Menu" | /mnt/SDCARD/.tmp_update/script/shellect.sh -t "Background scraping ? (Currently: $ScrapeInBackground)" -b "Press A to validate your choice.")
-        # TODO : add a new option to display the tail of the log to show what happens in background
 
-        if [ "$Mychoice" = "Yes" ]; then
-            ScrapeInBackground="true"
-        elif [ "$Mychoice" = "No" ]; then
-            ScrapeInBackground="false"
-		elif [ "$Mychoice" = "Back to Configuration Menu" ]; then
-			Menu_Config
-			return
-        fi
+    Mychoice=$( echo -e "No\nYes\nBack to Configuration Menu" | /mnt/SDCARD/.tmp_update/script/shellect.sh -t "Background scraping ? (Currently: $ScrapeInBackground)" -b "Press A to validate your choice.")
+    # TODO : add a new option to display the tail of the log to show what happens in background
 
-        config=$(cat $ScraperConfigFile)
-        config=$(echo "$config" | jq --arg ScrapeInBackground "$ScrapeInBackground" '.ScrapeInBackground = $ScrapeInBackground')
-        echo "$config" > $ScraperConfigFile
-        sync
+    if [ "$Mychoice" = "Yes" ]; then
+        ScrapeInBackground="true"
+    elif [ "$Mychoice" = "No" ]; then
+        ScrapeInBackground="false"
+    elif [ "$Mychoice" = "Back to Configuration Menu" ]; then
         Menu_Config
+        return
+    fi
+
+    config=$(cat $ScraperConfigFile)
+    config=$(echo "$config" | jq --arg ScrapeInBackground "$ScrapeInBackground" '.ScrapeInBackground = $ScrapeInBackground')
+    echo "$config" > $ScraperConfigFile
+    sync
+    Menu_Config
 }
-
-
-##########################################################################################
-
 
 Menu_Config_MediaType()
 {
@@ -248,7 +217,6 @@ Menu_Config_MediaType()
       read -n 1 -s -r -p "Press A to continue"
       exit 1
     fi
-
 
     # Display Welcome
     clear
@@ -303,13 +271,7 @@ Menu_Config_MediaType()
     echo "$config" > $ScraperConfigFile
     sync
     Menu_Config
-
 }
-
-
-
-##########################################################################################
-
 
 Menu_RegionSelection()
 {
@@ -336,25 +298,24 @@ Menu_RegionSelection()
     read -n 1 -s -r -p "Press A to continue"
     clear
 
-
-Option01="Australia (au)"
-Option02="Brazil (br)"
-Option03="Canada (ca)"
-Option04="China (cn)"
-Option05="Finland (fi)"
-Option06="France (fr)"
-Option07="Germany (de)"
-Option08="Greece (gr)"
-Option09="Italy (it)"
-Option10="Japan (jp)"
-Option11="Korea (kr)"
-Option12="Netherlands (nl)"
-Option13="Norway (no)"
-Option14="Spain (sp)"
-Option15="Sweden (se)"
-Option16="United States (us)"
-Option17="United Kingdom (uk)"
-Option18="Back to Configuration Menu"
+    Option01="Australia (au)"
+    Option02="Brazil (br)"
+    Option03="Canada (ca)"
+    Option04="China (cn)"
+    Option05="Finland (fi)"
+    Option06="France (fr)"
+    Option07="Germany (de)"
+    Option08="Greece (gr)"
+    Option09="Italy (it)"
+    Option10="Japan (jp)"
+    Option11="Korea (kr)"
+    Option12="Netherlands (nl)"
+    Option13="Norway (no)"
+    Option14="Spain (sp)"
+    Option15="Sweden (se)"
+    Option16="United States (us)"
+    Option17="United Kingdom (uk)"
+    Option18="Back to Configuration Menu"
 
     Mychoice=$( echo -e "$Option01\n$Option02\n$Option03\n$Option04\n$Option05n$Option06\n$Option07\n$Option08\n$Option09\n$Option10\n$Option11\n$Option12\n$Option13\n$Option14\n$Option15\n$Option16\n$Option17\n$Option18\n" \
 	| /mnt/SDCARD/.tmp_update/script/shellect.sh -t\ "Current selected region: $ScreenscraperRegion" -b "Press A to validate your choice.") \
@@ -367,7 +328,7 @@ Option18="Back to Configuration Menu"
 	  "$Option12") LBregion="The Netherlands" ;;
 	  "$Option18") Menu_Config; return; ;;
 	esac
- clear
+    clear
 
     config=$(cat $ScraperConfigFile)
     config=$(echo "$config" | jq --arg LBregion "$LBregion" '.LaunchboxRegion = $LBregion')
@@ -375,11 +336,7 @@ Option18="Back to Configuration Menu"
     echo "$config" > $ScraperConfigFile
 	sync    
     Menu_Config
-
 }
-
-
-##########################################################################################
 
 Menu_Config_ScrapingSource()
 {
@@ -390,8 +347,7 @@ Menu_Config_ScrapingSource()
             
     # Read the content of the JSON file and convert it to a JSON string
     json=$(jq -c '.' "$ScraperConfigFile")
-    
-    
+
     # Recovering the values of variables
     Screenscraper_enabled=$(echo "$json" | jq -r '.Screenscraper_enabled')
     Launchbox_enabled=$(echo "$json" | jq -r '.Launchbox_enabled')
@@ -419,7 +375,6 @@ Menu_Config_ScrapingSource()
     [ "$Screenscraper" = "[x] Screenscraper" ] && Screenscraper_enabled="true" || Screenscraper_enabled="false"    
     [ "$Launchbox" = "[x] Launchbox" ] && Launchbox_enabled="true" || Launchbox_enabled="false"
     [ "$Retroarch" = "[x] Retroarch" ] && Retroarch_enabled="true" || Retroarch_enabled="false"
-   
 
     # Modify the JSON string with the new variable values
     json=$(echo "$json" | jq --arg Screenscraper "$Screenscraper_enabled" --arg Launchbox "$Launchbox_enabled" --arg Retroarch "$Retroarch_enabled" '. + { Screenscraper_enabled: $Screenscraper, Launchbox_enabled: $Launchbox, Retroarch_enabled: $Retroarch }')
@@ -431,12 +386,7 @@ Menu_Config_ScrapingSource()
     #echo "$json" | jq '.' > "$ScraperConfigFile"
     
     Menu_Config
-
 }
-
-
-##########################################################################################
-
 
 Launch_Scraping ()
 {
@@ -470,7 +420,6 @@ Launch_Scraping ()
     [ "$onerom" = "1" ] && onerom="$romname" || onerom=""
     
     # Check the value of each variable and run the corresponding script if the value is "true"
-
     if [ "$Screenscraper_enabled" = "true" ]; then
         if [ "$ScrapeInBackground" = "true" ]; then
             echo "/mnt/SDCARD/.tmp_update/script/scraper/scrap_screenscraper.sh $CurrentSystem" \"$onerom\" >>/tmp/scraper_script.sh
@@ -478,7 +427,9 @@ Launch_Scraping ()
             /mnt/SDCARD/.tmp_update/script/scraper/scrap_screenscraper.sh $CurrentSystem "$onerom"
         fi
     fi
-    if [ -f "$romimage" ] && ! [ "$onerom" = "" ] ; then echo exiting $romimage; pkill st; fi;  # exit if only one rom must be scraped and is already found
+
+    # exit if only one rom must be scraped and is already found
+    if [ -f "$romimage" ] && ! [ "$onerom" = "" ] ; then echo exiting $romimage; pkill st; fi;
 
     if [ "$Launchbox_enabled" = "true" ]; then
         if [ "$ScrapeInBackground" = "true" ]; then
@@ -487,7 +438,9 @@ Launch_Scraping ()
             /mnt/SDCARD/.tmp_update/script/scraper/scrap_launchbox.sh $CurrentSystem "$onerom"
         fi
     fi
-    if [ -f "$romimage" ] && ! [ "$onerom" = "" ] ; then  echo exiting $romimage ; pkill st; fi;
+
+    if [ -f "$romimage" ] && ! [ "$onerom" = "" ] ; then
+        echo exiting $romimage ; pkill st; fi;
     
     if [ "$Retroarch_enabled" = "true" ]; then
         if [ "$ScrapeInBackground" = "true" ]; then
@@ -496,18 +449,17 @@ Launch_Scraping ()
             /mnt/SDCARD/.tmp_update/script/scraper/scrap_retroarch.sh $CurrentSystem "$onerom"
         fi
     fi
+    
     if [ -f "$romimage" ] && ! [ "$onerom" = "" ] ; then  echo exiting $romimage ; pkill st; fi;
 
 	rm -f /tmp/stay_awake
 	pkill st
 }
 
-##########################################################################################
-
-Screenscraper_information () {
-clear
-
-cat << 	EOF
+Screenscraper_information ()
+{
+    clear
+    cat << 	EOF
 
 ===================================
       = Screenscraper.fr =
@@ -535,10 +487,10 @@ moderator/Admin     : 200.000 requests per day
 
 EOF
 
-read -n 1 -s -r -p "Press A to continue"
-clear 
+    read -n 1 -s -r -p "Press A to continue"
+    clear 
 
-cat << 	EOF
+    cat << 	EOF
 
 ===================================
       = Screenscraper.fr =
@@ -566,11 +518,9 @@ https://www.screenscraper.fr/faq.php
 
 EOF
 
-read -n 1 -s -r -p "Press A to continue"
-clear
+    read -n 1 -s -r -p "Press A to continue"
+    clear
 }
-
-##########################################################################################
 
 Delete_Rom_Cover ()
 {
@@ -582,32 +532,24 @@ Delete_Rom_Cover ()
     Menu_Main
 }
 
-
-##########################################################################################
-
 Menu_Main ()
-
 {
-clear
-Option1="Scrape all $(basename "$CurrentSystem") roms"
-[ -f "$romimage" ] && Option2="" || Option2="Scrape current rom: $romname"
-[ -f "$romimage" ] && Option3="Delete cover: $romNameNoExtension.png" || Option3=""
-Option4="Configuration"
-Option5="Exit"
+    clear
+    Option1="Scrape all $(basename "$CurrentSystem") roms"
+    [ -f "$romimage" ] && Option2="" || Option2="Scrape current rom: $romname"
+    [ -f "$romimage" ] && Option3="Delete cover: $romNameNoExtension.png" || Option3=""
+    Option4="Configuration"
+    Option5="Exit"
 
-clear
-Mychoice=$( echo -e "$Option1\n$Option2\n$Option3\n$Option4\nExit" | /mnt/SDCARD/.tmp_update/script/shellect.sh -t "           --== MAIN MENU ==--" -b "                     Menu : Exit        A : Validate ")
+    clear
+    Mychoice=$( echo -e "$Option1\n$Option2\n$Option3\n$Option4\nExit" | /mnt/SDCARD/.tmp_update/script/shellect.sh -t "           --== MAIN MENU ==--" -b "                     Menu : Exit        A : Validate ")
 
-[ "$Mychoice" = "$Option1" ] && (onerom=0; Launch_Scraping;)
-[ "$Mychoice" = "$Option2" ] && (onerom=1; Launch_Scraping;)
-[ "$Mychoice" = "$Option3" ] && Delete_Rom_Cover
-[ "$Mychoice" = "$Option4" ] && Menu_Config
-[ "$Mychoice" = "$Option5" ] && exit
-
-
+    [ "$Mychoice" = "$Option1" ] && (onerom=0; Launch_Scraping;)
+    [ "$Mychoice" = "$Option2" ] && (onerom=1; Launch_Scraping;)
+    [ "$Mychoice" = "$Option3" ] && Delete_Rom_Cover
+    [ "$Mychoice" = "$Option4" ] && Menu_Config
+    [ "$Mychoice" = "$Option5" ] && exit
 }
-
 
 /mnt/SDCARD/.tmp_update/script/scraper/config_repair.sh &
 Menu_Main
-
