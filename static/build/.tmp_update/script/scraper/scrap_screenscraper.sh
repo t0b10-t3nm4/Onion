@@ -158,8 +158,6 @@ search_on_screenscraper() {
 get_ssSystemID() {
     # Get directory name from function argument
     directory_name="$1"
-
-    # Define the path to the JSON file
     json_file="/mnt/SDCARD/.tmp_update/config/systems.json"
 
     # Use jq to find the ScreenScraperSystem based on the DirectoryName
@@ -314,17 +312,9 @@ for file in $(eval "find /mnt/SDCARD/Roms/$CurrentSystem -maxdepth 2 -type f \
     # Cleaning up names
     romName=$(basename "$file")
     romNameNoExtension=${romName%.*}
-	echo $romNameNoExtension	
+	echo "$romNameNoExtension"
     
-    romNameTrimmed="${romNameNoExtension/".nkit"/}"
-    romNameTrimmed="${romNameTrimmed//"!"/}"
-    romNameTrimmed="${romNameTrimmed//"&"/}"
-    romNameTrimmed="${romNameTrimmed/"Disc "/}"
-    romNameTrimmed="${romNameTrimmed/"Rev "/}"
-    romNameTrimmed="$(echo "$romNameTrimmed" | sed -e 's/ ([^()]*)//g' -e 's/ [[A-z0-9!+]*]//g' -e 's/([^()]*)//g' -e 's/[[A-z0-9!+]*]//g')"
-    romNameTrimmed="${romNameTrimmed//" - "/"%20"}"
-    romNameTrimmed="${romNameTrimmed/"-"/"%20"}"
-    romNameTrimmed="${romNameTrimmed//" "/"%20"}"
+    eval /mnt/SDCARD/.tmp_update/script/scraper/trim_rom_name.sh screenscraper "$romNameNoExtension"
     
     #echo $romNameTrimmed # for debugging
 
