@@ -2,13 +2,13 @@
 scraper=$1
 file=$2
 
+# Cleaning up names
+romName=$(basename "$file")
+romNameNoExtension=${romName%.*}
+
 case $scraper in
 screenscraper)
-    # Cleaning up names
-    romName=$(basename "$file")
-    romNameNoExtension=${romName%.*}
-    echo "$romNameNoExtension"
-
+    # Clean up the names
     romNameTrimmed="${romNameNoExtension/".nkit"/}"
     romNameTrimmed="${romNameTrimmed//"!"/}"
     romNameTrimmed="${romNameTrimmed//"&"/}"
@@ -22,11 +22,6 @@ screenscraper)
     ;;
 
 launchbox)
-    # Cleaning up names
-    romName=$(basename "$file")
-    romNameNoExtension=${romName%.*}
-    echo "$romNameNoExtension"
-
     romNameTrimmed="${romNameNoExtension/".nkit"/}"
     romNameTrimmed="${romNameTrimmed//"!"/}"
     romNameTrimmed="$(echo "$romNameTrimmed" | sed -e 's/&/and/g')"
@@ -46,22 +41,16 @@ launchbox)
     # For debugging
     # echo romNameNoExtension= $romNameNoExtension
     # echo romNameTrimmed= $romNameTrimmed
-
     romNameTrimmed=${romNameTrimmed// /%}
     romNameTrimmed=${romNameTrimmed//\'/%}
-
     # echo romNameTrimmed percent= $romNameTrimmed
     ;;
 
 retroarch)
-    # Cleaning up names
-    romName=$(basename "$file")
-    romNameNoExtension=${romName%.*}
-    romNameNoExtensionNoSpace=$(echo $romNameNoExtension | sed 's/ /%20/g')
-
-    echo "$romNameNoExtension"
-    #echo -e "$romNameNoExtension \n   ---- $romNameNoExtensionNoSpace"  # for debugging
+    # echo "$romNameNoExtension"
+    # echo -e "$romNameNoExtension \n   ---- $romNameNoExtensionNoSpace"  # for debugging
+    romNameTrimmed=$romNameNoExtension
     ;;
 esac
 
-echo "noextension=$romNameNoExtension; trimmed=$romNameTrimmed"
+echo "$romNameTrimmed"
